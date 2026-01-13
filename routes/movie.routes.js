@@ -1,6 +1,7 @@
 const express = require('express');
 const movieController = require('../controllers/movie.controller');
 const { protect } = require('../middleware/auth.middleware');
+const upload = require('../middleware/upload.middleware');
 
 const router = express.Router();
 
@@ -13,6 +14,9 @@ router.post('/', movieController.createMovie);
 router.get('/:id', movieController.getMovie);
 router.put('/:id', movieController.updateMovie);
 router.delete('/:id', movieController.deleteMovie);
+
+// Subida de imágenes
+router.post('/:id/upload-poster', upload.single('posterImage'), movieController.uploadPosterImage);
 
 // Acciones especiales
 router.put('/:id/favorite', movieController.toggleFavorite);

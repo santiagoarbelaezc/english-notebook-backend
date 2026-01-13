@@ -3,6 +3,7 @@ require('dotenv').config();
 
 const app = require('./app');
 const database = require('./config/database');
+const { verifyConnection } = require('./config/cloudinary');
 const logger = require('./utils/logger');
 
 // Configurar manejo de salida para Windows
@@ -57,7 +58,7 @@ const startServer = async () => {
       console.log('='.repeat(70));
       
       // Mostrar estado de MongoDB después de 1.5 segundos
-      setTimeout(() => {
+      setTimeout(async () => {
         try {
           if (database.getConnectionStatus) {
             const dbStatus = database.getConnectionStatus();
@@ -69,6 +70,20 @@ const startServer = async () => {
           }
         } catch (error) {
           logger.info('📊 MongoDB: Conexión establecida (modo simple)');
+        }
+
+        // Verificar Cloudinary
+        try {
+          const cloudinaryStatus = await verifyConnection();
+          logger.info('🖼️  ESTADO CLOUDINARY:');
+          if (cloudinaryStatus.connected) {
+            logger.info(`   ✅ Conectado a: ${cloudinaryStatus.cloud_name}`);
+            logger.info(`   Estado: ${cloudinaryStatus.status}`);
+          } else {
+            logger.warn(`   ⚠️  No conectado: ${cloudinaryStatus.message}`);
+          }
+        } catch (error) {
+          logger.warn(`   ⚠️  Error verificando Cloudinary: ${error.message}`);
         }
         
         // Mostrar rutas disponibles

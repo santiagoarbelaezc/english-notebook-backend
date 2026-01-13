@@ -1,6 +1,7 @@
 const express = require('express');
 const songController = require('../controllers/song.controller');
 const { protect } = require('../middleware/auth.middleware');
+const upload = require('../middleware/upload.middleware');
 
 const router = express.Router();
 
@@ -13,6 +14,9 @@ router.post('/', songController.createSong);
 router.get('/:id', songController.getSong);
 router.put('/:id', songController.updateSong);
 router.delete('/:id', songController.deleteSong);
+
+// Subida de imágenes
+router.post('/:id/upload-cover', upload.single('coverImage'), songController.uploadCoverImage);
 
 // Acciones especiales
 router.put('/:id/favorite', songController.toggleFavorite);

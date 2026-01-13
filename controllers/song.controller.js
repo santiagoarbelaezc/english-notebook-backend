@@ -1,6 +1,7 @@
 const Song = require('../models/Song');
 const { AppError } = require('../middleware/error.middleware');
 const logger = require('../utils/logger');
+const { uploadToCloudinary, deleteFromCloudinary, extractPublicIdFromUrl } = require('../utils/cloudinaryHelper');
 
 // Obtener todas las canciones del usuario
 exports.getAllSongs = async (req, res, next) => {
@@ -361,6 +362,72 @@ exports.getStats = async (req, res, next) => {
     });
   } catch (error) {
     logger.error(`❌ Error obteniendo estadísticas: ${error.message}`);
+    next(error);
+  }
+};
+
+// Subir portada de la canción
+exports.uploadCoverImage = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    // Verificar que se subió un archivo
+    if (!req.file) {
+      const error = new AppError('No se proporcionó ningún archivo', 400);
+      return next(error);
+    }
+
+    const song = await Song.findOne({ _id: id, user: userId });
+
+    if (!song) {
+      const error = new AppError('Canción no encontrada', 404);
+      return next(error);
+    }
+
+    logger.info(`📤 Subiendo portada para canción "${song.title}" del usuario ${req.user.username}...`);
+
+    // Subir a Cloudinary
+    const uploadResult = await uploadToCloudinary(req.file.path, {
+      public_id: `song_cover_${id}_${Date.now()}`,
+      transformation: [
+        { width: 500, height: 500, crop: 'fill' },
+        { quality: 'auto' }
+      ]
+    });
+
+    if (!uploadResult.success) {
+      const error = new AppError(`Error subiendo imagen: ${uploadResult.error}`, 500);
+      return next(error);
+    }
+
+    // Si había una portada anterior, eliminarla de Cloudinary
+    if (song.coverImage) {
+      const oldPublicId = extractPublicIdFromUrl(song.coverImage);
+      if (oldPublicId) {
+        await deleteFromCloudinary(oldPublicId);
+      }
+    }
+
+    // Actualizar canción con nueva portada
+    song.coverImage = uploadResult.data.url;
+    song.updatedAt = Date.now();
+    await song.save();
+
+    logger.info(`✅ Portada de canción actualizada: "${song.title}" para usuario ${req.user.username}`);
+
+    res.status(200).json({
+      success: true,
+      message: 'Portada de canción actualizada exitosamente',
+      coverImage: {
+        url: uploadResult.data.url,
+        publicId: uploadResult.data.public_id,
+        width: uploadResult.data.width,
+        height: uploadResult.data.height
+      }
+    });
+  } catch (error) {
+    logger.error(`❌ Error subiendo portada: ${error.message}`);
     next(error);
   }
 };

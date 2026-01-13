@@ -1,6 +1,7 @@
 const Movie = require('../models/Movie');
 const { AppError } = require('../middleware/error.middleware');
 const logger = require('../utils/logger');
+const { uploadToCloudinary, deleteFromCloudinary, extractPublicIdFromUrl } = require('../utils/cloudinaryHelper');
 
 // Obtener todas las películas del usuario
 exports.getAllMovies = async (req, res, next) => {
@@ -379,6 +380,72 @@ exports.getStats = async (req, res, next) => {
     });
   } catch (error) {
     logger.error(`❌ Error obteniendo estadísticas: ${error.message}`);
+    next(error);
+  }
+};
+
+// Subir póster de la película
+exports.uploadPosterImage = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    // Verificar que se subió un archivo
+    if (!req.file) {
+      const error = new AppError('No se proporcionó ningún archivo', 400);
+      return next(error);
+    }
+
+    const movie = await Movie.findOne({ _id: id, user: userId });
+
+    if (!movie) {
+      const error = new AppError('Película no encontrada', 404);
+      return next(error);
+    }
+
+    logger.info(`📤 Subiendo póster para película "${movie.title}" del usuario ${req.user.username}...`);
+
+    // Subir a Cloudinary
+    const uploadResult = await uploadToCloudinary(req.file.path, {
+      public_id: `movie_poster_${id}_${Date.now()}`,
+      transformation: [
+        { width: 400, height: 600, crop: 'fill' },
+        { quality: 'auto' }
+      ]
+    });
+
+    if (!uploadResult.success) {
+      const error = new AppError(`Error subiendo imagen: ${uploadResult.error}`, 500);
+      return next(error);
+    }
+
+    // Si había un póster anterior, eliminarlo de Cloudinary
+    if (movie.posterImage) {
+      const oldPublicId = extractPublicIdFromUrl(movie.posterImage);
+      if (oldPublicId) {
+        await deleteFromCloudinary(oldPublicId);
+      }
+    }
+
+    // Actualizar película con nuevo póster
+    movie.posterImage = uploadResult.data.url;
+    movie.updatedAt = Date.now();
+    await movie.save();
+
+    logger.info(`✅ Póster de película actualizado: "${movie.title}" para usuario ${req.user.username}`);
+
+    res.status(200).json({
+      success: true,
+      message: 'Póster de película actualizado exitosamente',
+      posterImage: {
+        url: uploadResult.data.url,
+        publicId: uploadResult.data.public_id,
+        width: uploadResult.data.width,
+        height: uploadResult.data.height
+      }
+    });
+  } catch (error) {
+    logger.error(`❌ Error subiendo póster: ${error.message}`);
     next(error);
   }
 };

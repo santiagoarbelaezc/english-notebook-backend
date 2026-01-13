@@ -6,6 +6,7 @@ const Conversation = require('../models/Conversation');
 const Song = require('../models/Song');
 const { AppError } = require('../middleware/error.middleware');
 const logger = require('../utils/logger');
+const { uploadToCloudinary, deleteFromCloudinary, extractPublicIdFromUrl } = require('../utils/cloudinaryHelper');
 
 // Obtener mi perfil
 exports.getMyProfile = async (req, res, next) => {
@@ -69,7 +70,7 @@ exports.getPublicProfile = async (req, res, next) => {
 exports.updateProfile = async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const { bio, nativeLanguage, profileImage } = req.body;
+    const { bio, nativeLanguage } = req.body;
 
     const profile = await Profile.findOne({ user: userId });
 
@@ -91,10 +92,6 @@ exports.updateProfile = async (req, res, next) => {
       profile.nativeLanguage = nativeLanguage;
     }
 
-    if (profileImage !== undefined) {
-      profile.profileImage = profileImage;
-    }
-
     profile.updatedAt = Date.now();
     await profile.save();
 
@@ -107,6 +104,72 @@ exports.updateProfile = async (req, res, next) => {
     });
   } catch (error) {
     logger.error(`❌ Error actualizando perfil: ${error.message}`);
+    next(error);
+  }
+};
+
+// Subir imagen de perfil
+exports.uploadProfileImage = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+
+    // Verificar que se subió un archivo
+    if (!req.file) {
+      const error = new AppError('No se proporcionó ningún archivo', 400);
+      return next(error);
+    }
+
+    logger.info(`📤 Subiendo imagen de perfil para usuario ${req.user.username}...`);
+
+    // Subir a Cloudinary
+    const uploadResult = await uploadToCloudinary(req.file.path, {
+      public_id: `profile_${userId}_${Date.now()}`,
+      transformation: [
+        { width: 400, height: 400, crop: 'fill', gravity: 'face' },
+        { quality: 'auto' }
+      ]
+    });
+
+    if (!uploadResult.success) {
+      const error = new AppError(`Error subiendo imagen: ${uploadResult.error}`, 500);
+      return next(error);
+    }
+
+    // Obtener perfil actual
+    const profile = await Profile.findOne({ user: userId });
+
+    if (!profile) {
+      const error = new AppError('Perfil no encontrado', 404);
+      return next(error);
+    }
+
+    // Si había una imagen anterior, eliminarla de Cloudinary
+    if (profile.profileImage) {
+      const oldPublicId = extractPublicIdFromUrl(profile.profileImage);
+      if (oldPublicId) {
+        await deleteFromCloudinary(oldPublicId);
+      }
+    }
+
+    // Actualizar perfil con nueva imagen
+    profile.profileImage = uploadResult.data.url;
+    profile.updatedAt = Date.now();
+    await profile.save();
+
+    logger.info(`✅ Imagen de perfil actualizada para usuario ${req.user.username}`);
+
+    res.status(200).json({
+      success: true,
+      message: 'Imagen de perfil actualizada exitosamente',
+      profileImage: {
+        url: uploadResult.data.url,
+        publicId: uploadResult.data.public_id,
+        width: uploadResult.data.width,
+        height: uploadResult.data.height
+      }
+    });
+  } catch (error) {
+    logger.error(`❌ Error subiendo imagen de perfil: ${error.message}`);
     next(error);
   }
 };
