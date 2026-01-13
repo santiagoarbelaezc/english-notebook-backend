@@ -1,13 +1,16 @@
 const express = require('express');
+const authController = require('../controllers/auth.controller');
+const { protect } = require('../middleware/auth.middleware');
+
 const router = express.Router();
 
-// Rutas de autenticación
-router.post('/register', (req, res) => {
-  res.json({ message: 'Register endpoint' });
-});
+// Rutas públicas
+router.post('/register', authController.register);
+router.post('/login', authController.login);
+router.post('/verify-token', authController.verifyToken);
 
-router.post('/login', (req, res) => {
-  res.json({ message: 'Login endpoint' });
-});
+// Rutas protegidas
+router.get('/me', protect, authController.getCurrentUser);
+router.post('/logout', protect, authController.logout);
 
 module.exports = router;
