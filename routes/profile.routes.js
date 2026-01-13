@@ -1,9 +1,22 @@
 const express = require('express');
+const profileController = require('../controllers/profile.controller');
+const { protect } = require('../middleware/auth.middleware');
+
 const router = express.Router();
 
-// Profile routes
-router.get('/', (req, res) => {
-  res.json({ message: 'Get profile' });
-});
+// Rutas protegidas - requieren autenticación
+router.use(protect);
+
+// Mi perfil
+router.get('/me', profileController.getMyProfile);
+router.put('/me', profileController.updateProfile);
+router.get('/me/summary', profileController.getProfileSummary);
+router.get('/me/stats', profileController.getDetailedStats);
+router.get('/me/progress', profileController.getLearningProgress);
+router.put('/me/streak', profileController.updateStreak);
+router.put('/me/recalculate-stats', profileController.recalculateStats);
+
+// Perfil público de otros usuarios
+router.get('/:username', profileController.getPublicProfile);
 
 module.exports = router;

@@ -34,6 +34,22 @@ const grammarSchema = new mongoose.Schema(
       description: 'Formato/estructura de la regla (ej: Subject + Verb + Object)'
     },
 
+    // Palabras subrayadas con color
+    highlightedWords: [
+      {
+        word: {
+          type: String,
+          required: true
+        },
+        color: {
+          type: String,
+          required: true,
+          description: 'Color del subrayado (hex o nombre: red, blue, yellow, green, purple, orange, pink)'
+        },
+        _id: false
+      }
+    ],
+
     // Ejemplos
     examples: [
       {
