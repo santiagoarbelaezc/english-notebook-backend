@@ -422,7 +422,7 @@ exports.getStats = async (req, res, next) => {
 
     // Contar por dificultad
     const byDifficulty = await Flashcard.aggregate([
-      { $match: { user: require('mongoose').Types.ObjectId(userId) } },
+      { $match: { user: new mongoose.Types.ObjectId(userId) } },
       { $group: { _id: '$difficulty', count: { $sum: 1 } } }
     ]);
 
