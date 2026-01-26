@@ -1,6 +1,7 @@
 const DailyCommitment = require('../models/DailyCommitment');
 const { AppError } = require('../middleware/error.middleware');
 const logger = require('../utils/logger');
+const mongoose = require('mongoose');
 
 // Obtener todos los compromisos del usuario
 exports.getAllCommitments = async (req, res, next) => {
@@ -397,7 +398,7 @@ exports.getStats = async (req, res, next) => {
 
     // Promedio de progreso
     const avgProgress = await DailyCommitment.aggregate([
-      { $match: { user: require('mongoose').Types.ObjectId(userId) } },
+      { $match: { user: new mongoose.Types.ObjectId(userId) } },
       { $group: { _id: null, average: { $avg: '$progress.percentage' } } }
     ]);
 

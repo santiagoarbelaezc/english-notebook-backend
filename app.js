@@ -19,6 +19,7 @@ const songRoutes = require('./routes/song.routes');
 const grammarRoutes = require('./routes/grammar.routes');
 const textRoutes = require('./routes/text.routes');
 const achievementRoutes = require('./routes/achievement.routes');
+const irregularVerbRoutes = require('./routes/irregularVerb.routes');
 
 // Middleware básicos
 app.use(helmet({
@@ -86,7 +87,8 @@ app.get('/', (req, res) => {
       songs: '/api/songs',
       grammar: '/api/grammar',
       texts: '/api/texts',
-      achievements: '/api/achievements'
+      achievements: '/api/achievements',
+      'irregular-verbs': '/api/irregular-verbs'
     },
     status: 'operational',
     timestamp: new Date().toISOString()
@@ -112,6 +114,7 @@ app.use('/api/songs', songRoutes);
 app.use('/api/grammar', grammarRoutes);
 app.use('/api/texts', textRoutes);
 app.use('/api/achievements', achievementRoutes);
+app.use('/api/irregular-verbs', irregularVerbRoutes);
 
 // Ruta 404
 app.use('*', (req, res) => {

@@ -1,6 +1,7 @@
 const IrregularVerb = require('../models/IrregularVerb');
 const { AppError } = require('../middleware/error.middleware');
 const logger = require('../utils/logger');
+const mongoose = require('mongoose');
 
 // Obtener todos los verbos irregulares del usuario
 exports.getAllVerbs = async (req, res, next) => {
@@ -364,7 +365,7 @@ exports.getStats = async (req, res, next) => {
 
     // Contar por dificultad
     const byDifficulty = await IrregularVerb.aggregate([
-      { $match: { user: require('mongoose').Types.ObjectId(userId) } },
+      { $match: { user: new mongoose.Types.ObjectId(userId) } },
       { $group: { _id: '$difficulty', count: { $sum: 1 } } }
     ]);
 

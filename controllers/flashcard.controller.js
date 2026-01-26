@@ -1,6 +1,7 @@
 const Flashcard = require('../models/Flashcard');
 const { AppError } = require('../middleware/error.middleware');
 const logger = require('../utils/logger');
+const mongoose = require('mongoose');
 
 // Obtener todas las tarjetas del usuario
 exports.getAllFlashcards = async (req, res, next) => {
@@ -395,7 +396,7 @@ exports.getAllDecks = async (req, res, next) => {
     const userId = req.user.id;
 
     const decks = await Flashcard.aggregate([
-      { $match: { user: require('mongoose').Types.ObjectId(userId) } },
+      { $match: { user: new mongoose.Types.ObjectId(userId) } },
       { $group: { _id: '$deck', count: { $sum: 1 } } },
       { $sort: { _id: 1 } }
     ]);

@@ -2,6 +2,7 @@ const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
 const { AppError } = require('../middleware/error.middleware');
 const logger = require('../utils/logger');
+const mongoose = require('mongoose');
 
 // ============================================
 // CONVERSACIONES
@@ -487,7 +488,7 @@ exports.getStats = async (req, res, next) => {
 
     // Contar por tema
     const byTopic = await Conversation.aggregate([
-      { $match: { user: require('mongoose').Types.ObjectId(userId) } },
+      { $match: { user: new mongoose.Types.ObjectId(userId) } },
       { $group: { _id: '$topic', count: { $sum: 1 } } }
     ]);
 

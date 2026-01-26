@@ -1,6 +1,7 @@
 const DailyPhrase = require('../models/DailyPhrase');
 const { AppError } = require('../middleware/error.middleware');
 const logger = require('../utils/logger');
+const mongoose = require('mongoose');
 
 // Obtener todas las frases del usuario
 exports.getAllPhrases = async (req, res, next) => {
@@ -275,13 +276,13 @@ exports.getStats = async (req, res, next) => {
 
     // Contar por tipo
     const byType = await DailyPhrase.aggregate([
-      { $match: { user: require('mongoose').Types.ObjectId(userId) } },
+      { $match: { user: new mongoose.Types.ObjectId(userId) } },
       { $group: { _id: '$type', count: { $sum: 1 } } }
     ]);
 
     // Palabras clave más frecuentes
     const topKeywords = await DailyPhrase.aggregate([
-      { $match: { user: require('mongoose').Types.ObjectId(userId) } },
+      { $match: { user: new mongoose.Types.ObjectId(userId) } },
       { $unwind: '$keywords' },
       { $group: { _id: '$keywords', count: { $sum: 1 } } },
       { $sort: { count: -1 } },

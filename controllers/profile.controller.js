@@ -4,6 +4,7 @@ const Vocabulary = require('../models/Vocabulary');
 const Grammar = require('../models/Grammar');
 const Conversation = require('../models/Conversation');
 const Song = require('../models/Song');
+const mongoose = require('mongoose');
 const { AppError } = require('../middleware/error.middleware');
 const logger = require('../utils/logger');
 const { uploadToCloudinary, deleteFromCloudinary, extractPublicIdFromUrl } = require('../utils/cloudinaryHelper');
@@ -94,6 +95,9 @@ exports.updateProfile = async (req, res, next) => {
 
     profile.updatedAt = Date.now();
     await profile.save();
+
+    // Populate user data for response
+    await profile.populate('user', 'name username email englishLevel createdAt');
 
     logger.info(`✅ Perfil actualizado para usuario ${req.user.username}`);
 
@@ -244,39 +248,51 @@ exports.getDetailedStats = async (req, res, next) => {
 
     // Obtener datos adicionales
     const vocabularyByDifficulty = await Vocabulary.aggregate([
-      { $match: { user: require('mongoose').Types.ObjectId(userId) } },
+      { $match: { user: new mongoose.Types.ObjectId(userId) } },
       { $group: { _id: '$difficulty', count: { $sum: 1 } } }
     ]);
 
     const vocabularyByCategory = await Vocabulary.aggregate([
-      { $match: { user: require('mongoose').Types.ObjectId(userId) } },
+      { $match: { user: new mongoose.Types.ObjectId(userId) } },
       { $group: { _id: '$category', count: { $sum: 1 } } }
     ]);
 
     const conversationsByTopic = await Conversation.aggregate([
-      { $match: { user: require('mongoose').Types.ObjectId(userId) } },
+      { $match: { user: new mongoose.Types.ObjectId(userId) } },
       { $group: { _id: '$topic', count: { $sum: 1 } } }
     ]);
 
     const songsByTopic = await Song.aggregate([
-      { $match: { user: require('mongoose').Types.ObjectId(userId) } },
+      { $match: { user: new mongoose.Types.ObjectId(userId) } },
       { $group: { _id: '$topic', count: { $sum: 1 } } }
     ]);
 
     const totalMessages = await Conversation.aggregate([
-      { $match: { user: require('mongoose').Types.ObjectId(userId) } },
+      { $match: { user: new mongoose.Types.ObjectId(userId) } },
       { $group: { _id: null, totalMessages: { $sum: '$messageCount' } } }
     ]);
 
     res.status(200).json({
       success: true,
       statistics: {
-        overview: profile.statistics,
-        vocabularyByDifficulty,
-        vocabularyByCategory,
-        conversationsByTopic,
-        songsByTopic,
-        totalMessages: totalMessages[0]?.totalMessages || 0
+        vocabulary: {
+          learned: profile.statistics.totalVocabulary,
+          total: profile.statistics.totalVocabulary,
+          mastered: profile.statistics.totalVocabulary // Assuming all are mastered for now
+        },
+        grammar: {
+          completed: profile.statistics.totalGrammarRules,
+          total: profile.statistics.totalGrammarRules
+        },
+        conversations: {
+          completed: profile.statistics.totalConversations,
+          total: profile.statistics.totalConversations
+        },
+        streak: {
+          current: profile.statistics.streakDays,
+          longest: profile.statistics.streakDays, // Assuming current is longest for now
+          lastUpdated: profile.statistics.lastActiveDate
+        }
       }
     });
   } catch (error) {

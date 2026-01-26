@@ -1,6 +1,7 @@
 const Achievement = require('../models/Achievement');
 const { AppError } = require('../middleware/error.middleware');
 const logger = require('../utils/logger');
+const mongoose = require('mongoose');
 
 // Obtener todos los logros del usuario
 exports.getAllAchievements = async (req, res, next) => {
@@ -256,19 +257,19 @@ exports.getStats = async (req, res, next) => {
 
     const totalAchievements = await Achievement.countDocuments({ user: userId });
     const totalPoints = await Achievement.aggregate([
-      { $match: { user: require('mongoose').Types.ObjectId(userId) } },
+      { $match: { user: new mongoose.Types.ObjectId(userId) } },
       { $group: { _id: null, total: { $sum: '$points' } } }
     ]);
 
     // Contar por tipo
     const byType = await Achievement.aggregate([
-      { $match: { user: require('mongoose').Types.ObjectId(userId) } },
+      { $match: { user: new mongoose.Types.ObjectId(userId) } },
       { $group: { _id: '$type', count: { $sum: 1 } } }
     ]);
 
     // Promedio de progreso
     const avgProgress = await Achievement.aggregate([
-      { $match: { user: require('mongoose').Types.ObjectId(userId) } },
+      { $match: { user: new mongoose.Types.ObjectId(userId) } },
       { $group: { _id: null, average: { $avg: '$progress' } } }
     ]);
 
