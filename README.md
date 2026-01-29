@@ -15,79 +15,113 @@
 
 ---
 
-## 🏗️ **Project Structure**
 
-📁 english-notebook-backend/
-│
-├── 📁 config/ # Configuration files
-│ ├── 📄 database.js # MongoDB connection setup
-│ ├── 📄 cloudinary.js # Cloudinary media storage config
-│ └── 📄 constants.js # Application constants
-│
-├── 📁 controllers/ # Business logic handlers
-│ ├── 📄 auth.controller.js # Authentication logic
-│ ├── 📄 user.controller.js # User management
-│ ├── 📄 conversation.controller.js # AI conversations
-│ ├── 📄 flashcard.controller.js # Vocabulary cards
-│ ├── 📄 grammar.controller.js # Grammar exercises
-│ ├── 📄 multimedia.controller.js # Songs, movies, texts
-│ └── 📄 achievement.controller.js # Gamification system
-│
-├── 📁 logs/ # Application logs
-│ ├── 📄 access.log # HTTP request logs
-│ ├── 📄 error.log # Error logs
-│ └── 📄 combined.log # Comprehensive logs
-│
-├── 📁 middleware/ # Custom middleware
-│ ├── 📄 auth.middleware.js # JWT authentication
-│ ├── 📄 validation.middleware.js # Request validation
-│ ├── 📄 error.middleware.js # Error handling
-│ ├── 📄 upload.middleware.js # File upload handling
-│ └── 📄 rateLimit.middleware.js # Rate limiting
-│
-├── 📁 models/ # MongoDB schemas and models
-│ ├── 📄 User.js # User accounts and profiles
-│ ├── 📄 Profile.js # Extended user information
-│ ├── 📄 Achievement.js # Gamification achievements
-│ ├── 📄 Conversation.js # AI conversation sessions
-│ ├── 📄 Message.js # Conversation messages
-│ ├── 📄 Flashcard.js # Vocabulary flashcards
-│ ├── 📄 Grammar.js # Grammar rules and exercises
-│ ├── 📄 Vocabulary.js # Word banks and definitions
-│ ├── 📄 Song.js # Lyrics and music learning
-│ ├── 📄 Movie.js # Movie scene analysis
-│ ├── 📄 Text.js # Reading comprehension
-│ ├── 📄 DailyPhrase.js # Daily expressions
-│ ├── 📄 IrregularVerb.js # Verb conjugation
-│ └── 📄 DailyCommitment.js # Learning streaks
-│
-├── 📁 routes/ # API route definitions
-│ ├── 📄 auth.routes.js # Authentication endpoints
-│ ├── 📄 user.routes.js # User management endpoints
-│ ├── 📄 conversation.routes.js # Conversation endpoints
-│ ├── 📄 learning.routes.js # Learning content endpoints
-│ ├── 📄 multimedia.routes.js # Media content endpoints
-│ └── 📄 admin.routes.js # Administrative endpoints
-│
-├── 📁 uploads/ # Temporary file storage
-│ ├── 📁 avatars/ # User profile pictures
-│ ├── 📁 audio/ # Pronunciation audio files
-│ ├── 📁 documents/ # Learning materials
-│ └── 📁 temp/ # Temporary uploads
-│
-├── 📁 utils/ # Helper functions and utilities
-│ ├── 📄 errorHandler.js # Custom error handling
-│ ├── 📄 responseHandler.js # API response formatting
-│ ├── 📄 fileProcessor.js # File upload processing
-│ ├── 📄 validator.js # Data validation utilities
-│ ├── 📄 logger.js # Enhanced logging
-│ └── 📄 helpers.js # General helper functions
-│
-├── 📄 .env # Environment variables
-├── 📄 .env.example # Environment template
-├── 📄 .gitignore # Git ignore rules
-├── 📄 app.js # Express app configuration
-├── 📄 server.js # Server initialization
-├── 📄 package.json # Dependencies and scripts
-├── 📄 package-lock.json # Dependency lock file
-└── 📄 test-connection.js # Database connection test
+---
+
+## 🔧 **Technology Stack**
+
+### **Backend Framework**
+<div align="center">
+  <img src="https://img.shields.io/badge/Express.js-000000?style=for-the-badge&logo=express&logoColor=white" />
+  <img width="8" />
+  <img src="https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white" />
+  <img width="8" />
+  <img src="https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black" />
+</div>
+
+### **Database & Storage**
+<div align="center">
+  <img src="https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white" />
+  <img width="8" />
+  <img src="https://img.shields.io/badge/Mongoose-880000?style=for-the-badge&logo=mongoose&logoColor=white" />
+  <img width="8" />
+  <img src="https://img.shields.io/badge/Cloudinary-3448C5?style=for-the-badge&logo=cloudinary&logoColor=white" />
+</div>
+
+### **Security & Authentication**
+<div align="center">
+  <img src="https://img.shields.io/badge/JWT-000000?style=for-the-badge&logo=JSON%20web%20tokens&logoColor=white" />
+  <img width="8" />
+  <img src="https://img.shields.io/badge/BCrypt-003A70?style=for-the-badge&logo=bcrypt&logoColor=white" />
+  <img width="8" />
+  <img src="https://img.shields.io/badge/CORS-000000?style=for-the-badge&logo=cors&logoColor=white" />
+</div>
+
+### **Utilities & Tools**
+<div align="center">
+  <img src="https://img.shields.io/badge/Dotenv-ECD53F?style=for-the-badge&logo=dotenv&logoColor=black" />
+  <img width="8" />
+  <img src="https://img.shields.io/badge/Multer-F46519?style=for-the-badge&logo=multer&logoColor=white" />
+  <img width="8" />
+  <img src="https://img.shields.io/badge/Morgan-000000?style=for-the-badge&logo=morgan&logoColor=white" />
+  <img width="8" />
+  <img src="https://img.shields.io/badge/Helmet-000000?style=for-the-badge&logo=helmet&logoColor=white" />
+</div>
+
+---
+
+## 📊 **Database Models Overview**
+
+### **👤 User Management Models**
+| Model | Description | Key Fields |
+|-------|-------------|------------|
+| **User** | User authentication and core data | `email`, `password`, `role`, `status` |
+| **Profile** | Extended user information | `userId`, `level`, `streak`, `totalPoints` |
+| **Achievement** | Gamification rewards | `userId`, `badge`, `points`, `unlockedAt` |
+
+### **💬 Learning Content Models**
+| Model | Description | Key Fields |
+|-------|-------------|------------|
+| **Conversation** | AI dialogue sessions | `userId`, `topic`, `difficulty`, `messages` |
+| **Message** | Individual chat messages | `conversationId`, `content`, `sender`, `timestamp` |
+| **Flashcard** | Vocabulary cards | `userId`, `front`, `back`, `category`, `reviewCount` |
+| **Grammar** | Grammar exercises | `topic`, `rules`, `examples`, `exercises` |
+| **Vocabulary** | Word collections | `word`, `definition`, `pronunciation`, `examples` |
+
+### **🎵 Multimedia Learning Models**
+| Model | Description | Key Fields |
+|-------|-------------|------------|
+| **Song** | Music-based learning | `title`, `artist`, `lyrics`, `vocabularyList` |
+| **Movie** | Film scene analysis | `title`, `scene`, `transcript`, `difficulty` |
+| **Text** | Reading comprehension | `title`, `content`, `questions`, `level` |
+| **DailyPhrase** | Daily expressions | `phrase`, `meaning`, `examples`, `date` |
+
+### **📈 Progress Tracking Models**
+| Model | Description | Key Fields |
+|-------|-------------|------------|
+| **DailyCommitment** | Learning streaks | `userId`, `date`, `completed`, `duration` |
+| **IrregularVerb** | Verb conjugation | `baseForm`, `pastSimple`, `pastParticiple` |
+
+---
+
+## 🚀 **Key Features**
+
+### **🔐 Authentication System**
+- **JWT-based authentication** with refresh tokens
+- **Role-based access control** (User, Admin, Premium)
+- **Secure password hashing** with bcrypt
+- **Session management** and token blacklisting
+
+### **📱 User Management**
+- **Complete CRUD operations** for user profiles
+- **Progress tracking** and learning statistics
+- **Achievement system** with badges and rewards
+- **Daily commitment tracking** and streaks
+
+### **🎓 Learning Modules**
+- **AI-powered conversation** simulations
+- **Smart flashcard system** with spaced repetition
+- **Interactive grammar** exercises with explanations
+- **Multimedia content** (songs, movies, texts) analysis
+
+### **☁️ File Management**
+- **Image upload** to Cloudinary for user profiles
+- **Audio file handling** for pronunciation practice
+- **PDF/text processing** for learning materials
+- **Automatic file cleanup** and optimization
+
+---
+
+## 🌐 **API Endpoints Summary**
+
+### **Authentication & User Management**
