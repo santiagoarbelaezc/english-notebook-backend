@@ -20,6 +20,7 @@ const grammarRoutes = require('./routes/grammar.routes');
 const textRoutes = require('./routes/text.routes');
 const achievementRoutes = require('./routes/achievement.routes');
 const irregularVerbRoutes = require('./routes/irregularVerb.routes');
+const dailyPhraseRoutes = require('./routes/dailyPhrase.routes');
 
 // Middleware básicos
 app.use(helmet({
@@ -88,7 +89,8 @@ app.get('/', (req, res) => {
       grammar: '/api/grammar',
       texts: '/api/texts',
       achievements: '/api/achievements',
-      'irregular-verbs': '/api/irregular-verbs'
+      'irregular-verbs': '/api/irregular-verbs',
+      'daily-phrase': '/api/daily-phrase'
     },
     status: 'operational',
     timestamp: new Date().toISOString()
@@ -115,6 +117,7 @@ app.use('/api/grammar', grammarRoutes);
 app.use('/api/texts', textRoutes);
 app.use('/api/achievements', achievementRoutes);
 app.use('/api/irregular-verbs', irregularVerbRoutes);
+app.use('/api/daily-phrase', dailyPhraseRoutes);
 
 // Ruta 404
 app.use('*', (req, res) => {

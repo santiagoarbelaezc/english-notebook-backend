@@ -249,8 +249,11 @@ exports.getRandomPhrase = async (req, res, next) => {
     const phrases = await DailyPhrase.find({ user: userId });
 
     if (phrases.length === 0) {
-      const error = new AppError('No hay frases disponibles', 404);
-      return next(error);
+      return res.status(200).json({
+        success: true,
+        message: 'No hay frases disponibles aún. ¡Crea algunas frases primero!',
+        phrase: null
+      });
     }
 
     const randomIndex = Math.floor(Math.random() * phrases.length);

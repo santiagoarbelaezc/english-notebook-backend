@@ -394,19 +394,20 @@ exports.addRelatedVocabulary = async (req, res, next) => {
 exports.getStats = async (req, res, next) => {
   try {
     const userId = req.user.id;
+    const mongoose = require('mongoose'); // Importar mongoose
 
     const totalRules = await Grammar.countDocuments({ user: userId });
     const favoriteRules = await Grammar.countDocuments({ user: userId, isFavorite: true });
 
-    // Contar por categoría
+    // Contar por categoría - CORREGIDO
     const byCategory = await Grammar.aggregate([
-      { $match: { user: require('mongoose').Types.ObjectId(userId) } },
+      { $match: { user: new mongoose.Types.ObjectId(userId) } }, // Usar new
       { $group: { _id: '$category', count: { $sum: 1 } } }
     ]);
 
-    // Contar por dificultad
+    // Contar por dificultad - CORREGIDO
     const byDifficulty = await Grammar.aggregate([
-      { $match: { user: require('mongoose').Types.ObjectId(userId) } },
+      { $match: { user: new mongoose.Types.ObjectId(userId) } }, // Usar new
       { $group: { _id: '$difficulty', count: { $sum: 1 } } }
     ]);
 

@@ -1,6 +1,7 @@
 const Vocabulary = require('../models/Vocabulary');
 const { AppError } = require('../middleware/error.middleware');
 const logger = require('../utils/logger');
+const mongoose = require('mongoose');
 
 // Obtener todas las palabras del usuario con filtros opcionales
 exports.getAllVocabulary = async (req, res, next) => {
@@ -348,13 +349,13 @@ exports.getStats = async (req, res, next) => {
 
     // Contar por dificultad
     const byDifficulty = await Vocabulary.aggregate([
-      { $match: { user: require('mongoose').Types.ObjectId(userId) } },
+      { $match: { user: new mongoose.Types.ObjectId(userId) } },
       { $group: { _id: '$difficulty', count: { $sum: 1 } } }
     ]);
 
     // Contar por categoría
     const byCategory = await Vocabulary.aggregate([
-      { $match: { user: require('mongoose').Types.ObjectId(userId) } },
+      { $match: { user: new mongoose.Types.ObjectId(userId) } },
       { $group: { _id: '$category', count: { $sum: 1 } } }
     ]);
 
