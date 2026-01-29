@@ -9,3 +9,17 @@ English Notebook Backend is a robust REST API developed with Express.js and Mong
 ---
 
 🏗️ Architecture & Structure
+
+english-notebook-backend/
+├── 📁 config/          # Configuration files (DB, Cloudinary, etc.)
+├── 📁 controllers/     # Business logic handlers
+├── 📁 logs/           # Application logs
+├── 📁 middleware/     # Custom middleware (auth, validation, etc.)
+├── 📁 models/         # MongoDB schemas and models
+├── 📁 routes/         # API route definitions
+├── 📁 uploads/        # Temporary file storage
+├── 📁 utils/          # Helper functions and utilities
+├── 📄 app.js          # Express application configuration
+├── 📄 server.js       # Server initialization
+├── 📄 package.json    # Dependencies and scripts
+└── 📄 .env           # Environment variables
