@@ -61,7 +61,85 @@ IrregularVerb: Verb conjugation practice
 DailyCommitment: User learning streaks and goals
 
 Achievement: Milestones and rewards system
+---
 
+📁 Project Structure Details
+/config
+Database connection configuration
+
+Cloudinary setup and initialization
+
+External service configurations
+
+/controllers
+Business logic for all API endpoints
+
+Request handling and response formatting
+
+Error handling and validation
+
+/middleware
+Authentication middleware
+
+Request validation
+
+Error handling middleware
+
+Logging and monitoring
+
+/models
+MongoDB schemas with Mongoose
+
+Data validation rules
+
+Model relationships and indexes
+
+/routes
+API route definitions
+
+Route grouping and versioning
+
+Middleware application per route
+
+/utils
+Helper functions and utilities
+
+File processing helpers
+
+Response formatting
+
+Error classes and handlers
+
+/logs
+Application logs (access, error, combined)
+
+Log rotation configuration
+
+Development and production logging
+
+/uploads
+Temporary file storage
+
+File processing queue
+
+Automatic cleanup scheduling
+
+🔒 Security Features
+HTTPS enforcement in production
+
+CORS configuration for frontend access
+
+Rate limiting to prevent abuse
+
+SQL/NoSQL injection prevention
+
+XSS protection headers
+
+Helmet.js for security headers
+
+Input validation and sanitization
+
+Secure file upload validation
 
 <div align="center">
 👨‍💻 Developer
@@ -70,3 +148,4 @@ Junior Full Stack Developer
 Software Engineering Student – University of Quindío
 
 <br> <a href="https://github.com/santiagoarbelaezc"> <img src="https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white" /> </a> <img width="10" /> <a href="https://www.linkedin.com/in/santiago-arbelaez-contreras-9830b5290/"> <img src="https://img.shields.io/badge/LinkedIn-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white" /> </a> <img width="10" /> <a href="https://portfolio-santiagoa.web.app/portfolio"> <img src="https://img.shields.io/badge/Portfolio-6C63FF?style=for-the-badge&logo=sparkles&logoColor=white" /> </a> </div><div align="center"> <img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&height=90&section=footer&animation=fadeIn" /> </div>
+
