@@ -2,6 +2,7 @@ const Song = require('../models/Song');
 const { AppError } = require('../middleware/error.middleware');
 const logger = require('../utils/logger');
 const { uploadToCloudinary, deleteFromCloudinary, extractPublicIdFromUrl } = require('../utils/cloudinaryHelper');
+const mongoose = require('mongoose');
 
 // Obtener todas las canciones del usuario
 exports.getAllSongs = async (req, res, next) => {
@@ -341,13 +342,13 @@ exports.getStats = async (req, res, next) => {
 
     // Contar por tema
     const byTopic = await Song.aggregate([
-      { $match: { user: require('mongoose').Types.ObjectId(userId) } },
+      { $match: { user: new mongoose.Types.ObjectId(userId) } },
       { $group: { _id: '$topic', count: { $sum: 1 } } }
     ]);
 
     // Total de palabras anotadas
     const totalAnnotatedWords = await Song.aggregate([
-      { $match: { user: require('mongoose').Types.ObjectId(userId) } },
+      { $match: { user: new mongoose.Types.ObjectId(userId) } },
       { $group: { _id: null, total: { $sum: { $size: '$annotatedVocabulary' } } } }
     ]);
 
