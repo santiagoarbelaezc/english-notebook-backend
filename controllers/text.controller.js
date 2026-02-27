@@ -394,19 +394,19 @@ exports.getStats = async (req, res, next) => {
 
     // Contar por tipo
     const byType = await Text.aggregate([
-      { $match: { user: require('mongoose').Types.ObjectId(userId) } },
+      { $match: { user: new mongoose.Types.ObjectId(userId) } },
       { $group: { _id: '$type', count: { $sum: 1 } } }
     ]);
 
     // Contar por categoría
     const byCategory = await Text.aggregate([
-      { $match: { user: require('mongoose').Types.ObjectId(userId) } },
+      { $match: { user: new mongoose.Types.ObjectId(userId) } },
       { $group: { _id: '$category', count: { $sum: 1 } } }
     ]);
 
     // Total de palabras anotadas
     const totalAnnotatedWords = await Text.aggregate([
-      { $match: { user: require('mongoose').Types.ObjectId(userId) } },
+      { $match: { user: new mongoose.Types.ObjectId(userId) } },
       { $group: { _id: null, total: { $sum: { $size: '$annotatedVocabulary' } } } }
     ]);
 

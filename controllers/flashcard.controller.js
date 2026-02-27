@@ -428,18 +428,18 @@ exports.getStats = async (req, res, next) => {
 
     // Total de revisiones
     const totalReviews = await Flashcard.aggregate([
-      { $match: { user: require('mongoose').Types.ObjectId(userId) } },
+      { $match: { user: new mongoose.Types.ObjectId(userId) } },
       { $group: { _id: null, total: { $sum: '$statistics.timesReviewed' } } }
     ]);
 
     // Total de aciertos y errores
     const correctAnswers = await Flashcard.aggregate([
-      { $match: { user: require('mongoose').Types.ObjectId(userId) } },
+      { $match: { user: new mongoose.Types.ObjectId(userId) } },
       { $group: { _id: null, total: { $sum: '$statistics.timesCorrect' } } }
     ]);
 
     const incorrectAnswers = await Flashcard.aggregate([
-      { $match: { user: require('mongoose').Types.ObjectId(userId) } },
+      { $match: { user: new mongoose.Types.ObjectId(userId) } },
       { $group: { _id: null, total: { $sum: '$statistics.timesIncorrect' } } }
     ]);
 

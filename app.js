@@ -21,6 +21,8 @@ const textRoutes = require('./routes/text.routes');
 const achievementRoutes = require('./routes/achievement.routes');
 const irregularVerbRoutes = require('./routes/irregularVerb.routes');
 const dailyPhraseRoutes = require('./routes/dailyPhrase.routes');
+const dailyCommitmentRoutes = require('./routes/dailyCommitment.routes');
+const flashcardRoutes = require('./routes/flashcard.routes');
 
 // Middleware básicos
 app.use(helmet({
@@ -90,7 +92,9 @@ app.get('/', (req, res) => {
       texts: '/api/texts',
       achievements: '/api/achievements',
       'irregular-verbs': '/api/irregular-verbs',
-      'daily-phrase': '/api/daily-phrase'
+      'daily-phrase': '/api/daily-phrase',
+      'daily-commitments': '/api/daily-commitments',
+      'flashcards': '/api/flashcards'
     },
     status: 'operational',
     timestamp: new Date().toISOString()
@@ -118,6 +122,8 @@ app.use('/api/texts', textRoutes);
 app.use('/api/achievements', achievementRoutes);
 app.use('/api/irregular-verbs', irregularVerbRoutes);
 app.use('/api/daily-phrase', dailyPhraseRoutes);
+app.use('/api/daily-commitments', dailyCommitmentRoutes);
+app.use('/api/flashcards', flashcardRoutes);
 
 // Ruta 404
 app.use('*', (req, res) => {

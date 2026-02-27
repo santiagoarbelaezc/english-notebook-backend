@@ -404,7 +404,7 @@ exports.getStats = async (req, res, next) => {
 
     // Contar por tipo
     const byType = await DailyCommitment.aggregate([
-      { $match: { user: require('mongoose').Types.ObjectId(userId) } },
+      { $match: { user: new mongoose.Types.ObjectId(userId) } },
       { $group: { _id: '$type', count: { $sum: 1 } } }
     ]);
 
