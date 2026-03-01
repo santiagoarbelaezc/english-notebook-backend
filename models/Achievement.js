@@ -9,6 +9,22 @@ const achievementSchema = new mongoose.Schema(
       required: true
     },
 
+    // Categoría del componente
+    category: {
+      type: String,
+      enum: [
+        'vocabulary', 'grammar', 'conversation', 'text',
+        'song', 'movie', 'flashcard', 'irregularVerb', 'streak'
+      ],
+      required: true
+    },
+
+    // Hito requerido
+    milestone: {
+      type: Number,
+      required: true
+    },
+
     // Información del logro
     title: {
       type: String,
@@ -21,50 +37,29 @@ const achievementSchema = new mongoose.Schema(
       default: ''
     },
 
-    // Tipo de logro
-    type: {
-      type: String,
-      enum: ['vocabulary', 'grammar', 'conversation', 'reading', 'milestone', 'streak', 'custom'],
-      required: true
-    },
-
     // Icono/Badge
     icon: {
       type: String,
       default: '🏆'
     },
 
-    // Fecha de obtención
+    // Estado de desbloqueo
+    unlocked: {
+      type: Boolean,
+      default: false
+    },
+
+    // Fecha de desbloqueo
     unlockedDate: {
       type: Date,
-      default: Date.now
+      default: null
     },
 
-    // Detalles específicos
-    details: {
-      value: Number, // Ej: 50 palabras aprendidas
-      target: Number, // Meta
-      unit: String // Ej: "palabras", "días"
-    },
-
-    // Progreso
-    progress: {
+    // Experiencia otorgada
+    xpReward: {
       type: Number,
-      default: 100,
-      min: 0,
-      max: 100
-    },
-
-    // Puntos o recompensa
-    points: {
-      type: Number,
+      required: true,
       default: 0
-    },
-
-    // Notas personales
-    notes: {
-      type: String,
-      default: ''
     },
 
     // Auditoría
@@ -80,8 +75,8 @@ const achievementSchema = new mongoose.Schema(
 );
 
 // Índices
-achievementSchema.index({ user: 1 });
-achievementSchema.index({ type: 1 });
+achievementSchema.index({ user: 1, category: 1, milestone: 1 }, { unique: true });
+achievementSchema.index({ user: 1, unlocked: 1 });
 achievementSchema.index({ unlockedDate: -1 });
 
 module.exports = mongoose.model('Achievement', achievementSchema);

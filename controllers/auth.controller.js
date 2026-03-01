@@ -3,6 +3,7 @@ const Profile = require('../models/Profile');
 const jwt = require('jsonwebtoken');
 const { AppError } = require('../middleware/error.middleware');
 const logger = require('../utils/logger');
+const { updateLoginStreak, initializeAchievements } = require('../utils/achievementHelper');
 
 // Generar JWT
 const generateToken = (id) => {
@@ -56,6 +57,9 @@ exports.register = async (req, res, next) => {
     await Profile.create({
       user: newUser._id
     });
+
+    // Inicializar logros para el nuevo usuario
+    await initializeAchievements(newUser._id);
 
     // Generar token
     const token = generateToken(newUser._id);
@@ -115,6 +119,9 @@ exports.login = async (req, res, next) => {
     // Generar token
     const token = generateToken(user._id);
 
+    // Actualizar racha de login y verificar logros de racha
+    const streakResult = await updateLoginStreak(user._id);
+
     logger.info(`✅ Usuario logueado: ${user.username}`);
 
     res.status(200).json({
@@ -127,6 +134,11 @@ exports.login = async (req, res, next) => {
         username: user.username,
         email: user.email,
         englishLevel: user.englishLevel
+      },
+      streak: {
+        currentStreak: streakResult.streakDays,
+        longestStreak: streakResult.longestStreak,
+        newAchievements: streakResult.newAchievements
       }
     });
   } catch (error) {
@@ -201,11 +213,11 @@ exports.verifyToken = async (req, res, next) => {
     });
   } catch (error) {
     logger.error(`❌ Error verificando token: ${error.message}`);
-    
+
     if (error.name === 'JsonWebTokenError') {
       return next(new AppError('Token inválido', 401));
     }
-    
+
     if (error.name === 'TokenExpiredError') {
       return next(new AppError('Token expirado', 401));
     }

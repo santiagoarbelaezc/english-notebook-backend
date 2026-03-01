@@ -4,10 +4,16 @@ const Vocabulary = require('../models/Vocabulary');
 const Grammar = require('../models/Grammar');
 const Conversation = require('../models/Conversation');
 const Song = require('../models/Song');
+const Text = require('../models/Text');
+const Movie = require('../models/Movie');
+const Flashcard = require('../models/Flashcard');
+const IrregularVerb = require('../models/IrregularVerb');
+const Achievement = require('../models/Achievement');
 const mongoose = require('mongoose');
 const { AppError } = require('../middleware/error.middleware');
 const logger = require('../utils/logger');
 const { uploadToCloudinary, deleteFromCloudinary, extractPublicIdFromUrl } = require('../utils/cloudinaryHelper');
+const { checkAndUnlockAchievements } = require('../utils/achievementHelper');
 
 // Obtener mi perfil
 exports.getMyProfile = async (req, res, next) => {
@@ -202,11 +208,17 @@ exports.recalculateStats = async (req, res, next) => {
   try {
     const userId = req.user.id;
 
-    // Contar documentos
-    const totalVocabulary = await Vocabulary.countDocuments({ user: userId });
-    const totalGrammarRules = await Grammar.countDocuments({ user: userId });
-    const totalConversations = await Conversation.countDocuments({ user: userId });
-    const totalSongs = await Song.countDocuments({ user: userId });
+    // Contar documentos de todos los componentes
+    const [totalVocabulary, totalGrammarRules, totalConversations, totalSongs, totalTexts, totalMovies, totalFlashcards, totalIrregularVerbs] = await Promise.all([
+      Vocabulary.countDocuments({ user: userId }),
+      Grammar.countDocuments({ user: userId }),
+      Conversation.countDocuments({ user: userId }),
+      Song.countDocuments({ user: userId }),
+      Text.countDocuments({ user: userId }),
+      Movie.countDocuments({ user: userId }),
+      Flashcard.countDocuments({ user: userId }),
+      IrregularVerb.countDocuments({ user: userId })
+    ]);
 
     // Actualizar perfil
     const profile = await Profile.findOneAndUpdate(
@@ -216,17 +228,45 @@ exports.recalculateStats = async (req, res, next) => {
         'statistics.totalGrammarRules': totalGrammarRules,
         'statistics.totalConversations': totalConversations,
         'statistics.totalSongs': totalSongs,
+        'statistics.totalTexts': totalTexts,
+        'statistics.totalMovies': totalMovies,
+        'statistics.totalFlashcards': totalFlashcards,
+        'statistics.totalIrregularVerbs': totalIrregularVerbs,
         updatedAt: new Date()
       },
       { new: true }
     );
+
+    // Verificar logros automáticos para cada componente
+    const allNewAchievements = [];
+    const componentCounts = {
+      vocabulary: totalVocabulary,
+      grammar: totalGrammarRules,
+      conversation: totalConversations,
+      song: totalSongs,
+      text: totalTexts,
+      movie: totalMovies,
+      flashcard: totalFlashcards,
+      irregularVerb: totalIrregularVerbs
+    };
+
+    for (const [category, count] of Object.entries(componentCounts)) {
+      const newAchievements = await checkAndUnlockAchievements(userId, category, count);
+      allNewAchievements.push(...newAchievements);
+    }
+
+    // Recargar perfil con XP actualizado
+    const updatedProfile = await Profile.findOne({ user: userId });
 
     logger.info(`✅ Estadísticas recalculadas para usuario ${req.user.username}`);
 
     res.status(200).json({
       success: true,
       message: 'Estadísticas actualizadas exitosamente',
-      statistics: profile.statistics
+      statistics: updatedProfile.statistics,
+      experience: updatedProfile.experience,
+      level: updatedProfile.level,
+      newAchievements: allNewAchievements
     });
   } catch (error) {
     logger.error(`❌ Error recalculando estadísticas: ${error.message}`);
@@ -272,13 +312,19 @@ exports.getDetailedStats = async (req, res, next) => {
       { $group: { _id: null, totalMessages: { $sum: '$messageCount' } } }
     ]);
 
+    // Contar logros desbloqueados
+    const totalAchievements = await Achievement.countDocuments({ user: userId });
+    const unlockedAchievements = await Achievement.countDocuments({ user: userId, unlocked: true });
+
     res.status(200).json({
       success: true,
       statistics: {
+        experience: profile.experience || 0,
+        level: profile.level || 1,
         vocabulary: {
           learned: profile.statistics.totalVocabulary,
           total: profile.statistics.totalVocabulary,
-          mastered: profile.statistics.totalVocabulary // Assuming all are mastered for now
+          mastered: profile.statistics.totalVocabulary
         },
         grammar: {
           completed: profile.statistics.totalGrammarRules,
@@ -288,10 +334,30 @@ exports.getDetailedStats = async (req, res, next) => {
           completed: profile.statistics.totalConversations,
           total: profile.statistics.totalConversations
         },
+        texts: {
+          total: profile.statistics.totalTexts || 0
+        },
+        songs: {
+          total: profile.statistics.totalSongs || 0
+        },
+        movies: {
+          total: profile.statistics.totalMovies || 0
+        },
+        flashcards: {
+          total: profile.statistics.totalFlashcards || 0
+        },
+        irregularVerbs: {
+          total: profile.statistics.totalIrregularVerbs || 0
+        },
         streak: {
           current: profile.statistics.streakDays,
-          longest: profile.statistics.streakDays, // Assuming current is longest for now
+          longest: profile.statistics.longestStreak || profile.statistics.streakDays,
+          lastLogin: profile.statistics.lastLoginDate,
           lastUpdated: profile.statistics.lastActiveDate
+        },
+        achievements: {
+          total: totalAchievements,
+          unlocked: unlockedAchievements
         }
       }
     });
@@ -316,29 +382,39 @@ exports.getLearningProgress = async (req, res, next) => {
     const user = await User.findById(userId);
 
     // Calcular progreso basado en actividades
-    const totalActivities = 
+    const totalActivities =
       profile.statistics.totalVocabulary +
       profile.statistics.totalGrammarRules +
       profile.statistics.totalConversations +
-      profile.statistics.totalSongs;
+      profile.statistics.totalSongs +
+      (profile.statistics.totalTexts || 0) +
+      (profile.statistics.totalMovies || 0) +
+      (profile.statistics.totalFlashcards || 0) +
+      (profile.statistics.totalIrregularVerbs || 0);
 
     // Estimación simple del progreso (0-100%)
-    // Basado en cantidad de actividades completadas
     const progressPercentage = Math.min(100, Math.round((totalActivities / 100) * 100));
 
     res.status(200).json({
       success: true,
       progress: {
         currentLevel: user.englishLevel,
+        experience: profile.experience || 0,
+        level: profile.level || 1,
         progressPercentage,
         totalActivities,
         breakdown: {
           vocabulary: profile.statistics.totalVocabulary,
           grammar: profile.statistics.totalGrammarRules,
           conversations: profile.statistics.totalConversations,
-          songs: profile.statistics.totalSongs
+          songs: profile.statistics.totalSongs,
+          texts: profile.statistics.totalTexts || 0,
+          movies: profile.statistics.totalMovies || 0,
+          flashcards: profile.statistics.totalFlashcards || 0,
+          irregularVerbs: profile.statistics.totalIrregularVerbs || 0
         },
         streakDays: profile.statistics.streakDays,
+        longestStreak: profile.statistics.longestStreak || 0,
         lastActiveDate: profile.statistics.lastActiveDate
       }
     });
@@ -393,6 +469,10 @@ exports.getProfileSummary = async (req, res, next) => {
       return next(error);
     }
 
+    // Contar logros desbloqueados
+    const unlockedAchievements = await Achievement.countDocuments({ user: userId, unlocked: true });
+    const totalAchievements = await Achievement.countDocuments({ user: userId });
+
     res.status(200).json({
       success: true,
       summary: {
@@ -403,6 +483,12 @@ exports.getProfileSummary = async (req, res, next) => {
           englishLevel: profile.user.englishLevel,
           profileImage: profile.profileImage,
           bio: profile.bio
+        },
+        experience: profile.experience || 0,
+        level: profile.level || 1,
+        achievements: {
+          unlocked: unlockedAchievements,
+          total: totalAchievements
         },
         statistics: profile.statistics,
         memberSince: profile.createdAt

@@ -1,37 +1,93 @@
 const Achievement = require('../models/Achievement');
+const Profile = require('../models/Profile');
+const Vocabulary = require('../models/Vocabulary');
+const Grammar = require('../models/Grammar');
+const Conversation = require('../models/Conversation');
+const Text = require('../models/Text');
+const Song = require('../models/Song');
+const Movie = require('../models/Movie');
+const Flashcard = require('../models/Flashcard');
+const IrregularVerb = require('../models/IrregularVerb');
 const { AppError } = require('../middleware/error.middleware');
 const logger = require('../utils/logger');
 const mongoose = require('mongoose');
+const {
+  getAchievementsWithProgress,
+  initializeAchievements,
+  CATEGORY_TO_STAT
+} = require('../utils/achievementHelper');
 
-// Obtener todos los logros del usuario
+// ─── Obtener conteos actuales de todos los componentes ────────────────────
+
+const getCurrentCounts = async (userId) => {
+  const [
+    vocabulary,
+    grammar,
+    conversation,
+    text,
+    song,
+    movie,
+    flashcard,
+    irregularVerb
+  ] = await Promise.all([
+    Vocabulary.countDocuments({ user: userId }),
+    Grammar.countDocuments({ user: userId }),
+    Conversation.countDocuments({ user: userId }),
+    Text.countDocuments({ user: userId }),
+    Song.countDocuments({ user: userId }),
+    Movie.countDocuments({ user: userId }),
+    Flashcard.countDocuments({ user: userId }),
+    IrregularVerb.countDocuments({ user: userId })
+  ]);
+
+  const profile = await Profile.findOne({ user: userId });
+  const streak = profile?.statistics?.streakDays || 0;
+
+  return {
+    vocabulary,
+    grammar,
+    conversation,
+    text,
+    song,
+    movie,
+    flashcard,
+    irregularVerb,
+    streak
+  };
+};
+
+// ─── Obtener todos los logros del usuario ─────────────────────────────────
+
 exports.getAllAchievements = async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const { type, search } = req.query;
+    const { category, unlocked } = req.query;
 
-    const filter = { user: userId };
+    const counts = await getCurrentCounts(userId);
+    let achievements = await getAchievementsWithProgress(userId, counts);
 
-    if (type) {
-      const validTypes = ['vocabulary', 'grammar', 'conversation', 'reading', 'milestone', 'streak', 'custom'];
-      if (!validTypes.includes(type)) {
-        const error = new AppError('Tipo de logro inválido', 400);
+    // Filtrar por categoría
+    if (category) {
+      const validCategories = Object.keys(CATEGORY_TO_STAT);
+      if (!validCategories.includes(category)) {
+        const error = new AppError('Categoría de logro inválida', 400);
         return next(error);
       }
-      filter.type = type;
+      achievements = achievements.filter(a => a.category === category);
     }
 
-    if (search) {
-      filter.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } }
-      ];
+    // Filtrar por estado de desbloqueo
+    if (unlocked !== undefined) {
+      const isUnlocked = unlocked === 'true';
+      achievements = achievements.filter(a => a.unlocked === isUnlocked);
     }
 
-    const achievements = await Achievement.find(filter).sort({ unlockedDate: -1 });
+    const totalUnlocked = achievements.filter(a => a.unlocked).length;
 
     res.status(200).json({
       success: true,
       count: achievements.length,
+      totalUnlocked,
       achievements
     });
   } catch (error) {
@@ -40,275 +96,100 @@ exports.getAllAchievements = async (req, res, next) => {
   }
 };
 
-// Crear nuevo logro
-exports.createAchievement = async (req, res, next) => {
+// ─── Obtener logros por categoría ─────────────────────────────────────────
+
+exports.getByCategory = async (req, res, next) => {
   try {
-    const userId = req.user.id;
-    const { title, description, type, icon, details, progress, points, notes } = req.body;
-
-    // Validaciones
-    if (!title) {
-      const error = new AppError('El título es requerido', 400);
-      return next(error);
-    }
-
-    if (!type) {
-      const error = new AppError('El tipo de logro es requerido', 400);
-      return next(error);
-    }
-
-    const validTypes = ['vocabulary', 'grammar', 'conversation', 'reading', 'milestone', 'streak', 'custom'];
-    if (!validTypes.includes(type)) {
-      const error = new AppError('Tipo de logro inválido', 400);
-      return next(error);
-    }
-
-    // Crear logro
-    const achievement = await Achievement.create({
-      user: userId,
-      title: title.trim(),
-      description: description || '',
-      type,
-      icon: icon || '🏆',
-      details: details || {},
-      progress: progress || 100,
-      points: points || 0,
-      notes: notes || ''
-    });
-
-    logger.info(`✅ Logro creado: ${title} por usuario ${req.user.username}`);
-
-    res.status(201).json({
-      success: true,
-      message: 'Logro creado exitosamente',
-      achievement
-    });
-  } catch (error) {
-    logger.error(`❌ Error creando logro: ${error.message}`);
-    next(error);
-  }
-};
-
-// Obtener un logro específico
-exports.getAchievement = async (req, res, next) => {
-  try {
-    const { id } = req.params;
+    const { category } = req.params;
     const userId = req.user.id;
 
-    const achievement = await Achievement.findOne({ _id: id, user: userId });
-
-    if (!achievement) {
-      const error = new AppError('Logro no encontrado', 404);
+    const validCategories = Object.keys(CATEGORY_TO_STAT);
+    if (!validCategories.includes(category)) {
+      const error = new AppError('Categoría de logro inválida', 400);
       return next(error);
     }
+
+    const counts = await getCurrentCounts(userId);
+    const allAchievements = await getAchievementsWithProgress(userId, counts);
+    const achievements = allAchievements.filter(a => a.category === category);
+
+    const unlocked = achievements.filter(a => a.unlocked).length;
 
     res.status(200).json({
       success: true,
-      achievement
-    });
-  } catch (error) {
-    logger.error(`❌ Error obteniendo logro: ${error.message}`);
-    next(error);
-  }
-};
-
-// Actualizar logro
-exports.updateAchievement = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const userId = req.user.id;
-    const { title, description, icon, details, progress, points, notes } = req.body;
-
-    const achievement = await Achievement.findOne({ _id: id, user: userId });
-
-    if (!achievement) {
-      const error = new AppError('Logro no encontrado', 404);
-      return next(error);
-    }
-
-    // Validar progreso si se proporciona
-    if (progress !== undefined) {
-      if (progress < 0 || progress > 100) {
-        const error = new AppError('El progreso debe estar entre 0 y 100', 400);
-        return next(error);
-      }
-    }
-
-    const updateData = {};
-
-    if (title) updateData.title = title.trim();
-    if (description !== undefined) updateData.description = description;
-    if (icon) updateData.icon = icon;
-    if (details) updateData.details = details;
-    if (progress !== undefined) updateData.progress = progress;
-    if (points !== undefined) updateData.points = points;
-    if (notes !== undefined) updateData.notes = notes;
-
-    const updatedAchievement = await Achievement.findByIdAndUpdate(id, updateData, { new: true, runValidators: true });
-
-    logger.info(`✅ Logro actualizado: ${updatedAchievement.title} por usuario ${req.user.username}`);
-
-    res.status(200).json({
-      success: true,
-      message: 'Logro actualizado exitosamente',
-      achievement: updatedAchievement
-    });
-  } catch (error) {
-    logger.error(`❌ Error actualizando logro: ${error.message}`);
-    next(error);
-  }
-};
-
-// Eliminar logro
-exports.deleteAchievement = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const userId = req.user.id;
-
-    const achievement = await Achievement.findOneAndDelete({ _id: id, user: userId });
-
-    if (!achievement) {
-      const error = new AppError('Logro no encontrado', 404);
-      return next(error);
-    }
-
-    logger.info(`✅ Logro eliminado: ${achievement.title} por usuario ${req.user.username}`);
-
-    res.status(200).json({
-      success: true,
-      message: 'Logro eliminado exitosamente'
-    });
-  } catch (error) {
-    logger.error(`❌ Error eliminando logro: ${error.message}`);
-    next(error);
-  }
-};
-
-// Obtener logros por tipo
-exports.getByType = async (req, res, next) => {
-  try {
-    const { achievementType } = req.params;
-    const userId = req.user.id;
-
-    const validTypes = ['vocabulary', 'grammar', 'conversation', 'reading', 'milestone', 'streak', 'custom'];
-    if (!validTypes.includes(achievementType)) {
-      const error = new AppError('Tipo de logro inválido', 400);
-      return next(error);
-    }
-
-    const achievements = await Achievement.find({ user: userId, type: achievementType }).sort({ unlockedDate: -1 });
-
-    res.status(200).json({
-      success: true,
-      type: achievementType,
+      category,
       count: achievements.length,
+      unlocked,
       achievements
     });
   } catch (error) {
-    logger.error(`❌ Error obteniendo logros por tipo: ${error.message}`);
+    logger.error(`❌ Error obteniendo logros por categoría: ${error.message}`);
     next(error);
   }
 };
 
-// Actualizar progreso del logro
-exports.updateProgress = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const userId = req.user.id;
-    const { progress } = req.body;
+// ─── Obtener estadísticas de logros ───────────────────────────────────────
 
-    if (progress === undefined) {
-      const error = new AppError('El progreso es requerido', 400);
-      return next(error);
-    }
-
-    if (progress < 0 || progress > 100) {
-      const error = new AppError('El progreso debe estar entre 0 y 100', 400);
-      return next(error);
-    }
-
-    const achievement = await Achievement.findOne({ _id: id, user: userId });
-
-    if (!achievement) {
-      const error = new AppError('Logro no encontrado', 404);
-      return next(error);
-    }
-
-    achievement.progress = progress;
-    await achievement.save();
-
-    logger.info(`✅ Progreso actualizado: ${achievement.title} (${progress}%) por usuario ${req.user.username}`);
-
-    res.status(200).json({
-      success: true,
-      message: 'Progreso actualizado exitosamente',
-      achievement
-    });
-  } catch (error) {
-    logger.error(`❌ Error actualizando progreso: ${error.message}`);
-    next(error);
-  }
-};
-
-// Obtener estadísticas de logros
 exports.getStats = async (req, res, next) => {
   try {
     const userId = req.user.id;
 
+    // Asegurar que los logros existan
+    await initializeAchievements(userId);
+
+    const profile = await Profile.findOne({ user: userId });
+
     const totalAchievements = await Achievement.countDocuments({ user: userId });
-    const totalPoints = await Achievement.aggregate([
+    const unlockedAchievements = await Achievement.countDocuments({ user: userId, unlocked: true });
+
+    // Contar por categoría
+    const byCategory = await Achievement.aggregate([
       { $match: { user: new mongoose.Types.ObjectId(userId) } },
-      { $group: { _id: null, total: { $sum: '$points' } } }
+      {
+        $group: {
+          _id: '$category',
+          total: { $sum: 1 },
+          unlocked: { $sum: { $cond: ['$unlocked', 1, 0] } }
+        }
+      }
     ]);
 
-    // Contar por tipo
-    const byType = await Achievement.aggregate([
-      { $match: { user: new mongoose.Types.ObjectId(userId) } },
-      { $group: { _id: '$type', count: { $sum: 1 } } }
+    // Total XP ganado por logros
+    const totalXpFromAchievements = await Achievement.aggregate([
+      { $match: { user: new mongoose.Types.ObjectId(userId), unlocked: true } },
+      { $group: { _id: null, total: { $sum: '$xpReward' } } }
     ]);
 
-    // Promedio de progreso
-    const avgProgress = await Achievement.aggregate([
-      { $match: { user: new mongoose.Types.ObjectId(userId) } },
-      { $group: { _id: null, average: { $avg: '$progress' } } }
-    ]);
-
-    // Logros completados (progreso = 100)
-    const completedAchievements = await Achievement.countDocuments({ user: userId, progress: 100 });
+    // Últimos logros desbloqueados
+    const recentAchievements = await Achievement.find({
+      user: userId,
+      unlocked: true
+    })
+      .sort({ unlockedDate: -1 })
+      .limit(5);
 
     res.status(200).json({
       success: true,
       stats: {
         totalAchievements,
-        completedAchievements,
-        totalPoints: totalPoints[0]?.total || 0,
-        averageProgress: avgProgress[0]?.average?.toFixed(2) || 0,
-        byType
+        unlockedAchievements,
+        completionPercentage: totalAchievements > 0
+          ? Math.round((unlockedAchievements / totalAchievements) * 100)
+          : 0,
+        experience: profile?.experience || 0,
+        level: profile?.level || 1,
+        totalXpFromAchievements: totalXpFromAchievements[0]?.total || 0,
+        streak: {
+          current: profile?.statistics?.streakDays || 0,
+          longest: profile?.statistics?.longestStreak || 0,
+          lastLogin: profile?.statistics?.lastLoginDate
+        },
+        byCategory,
+        recentAchievements
       }
     });
   } catch (error) {
     logger.error(`❌ Error obteniendo estadísticas: ${error.message}`);
-    next(error);
-  }
-};
-
-// Obtener logros cercanos a completar (progreso > 50)
-exports.getInProgress = async (req, res, next) => {
-  try {
-    const userId = req.user.id;
-
-    const achievements = await Achievement.find({
-      user: userId,
-      progress: { $gt: 0, $lt: 100 }
-    }).sort({ progress: -1 });
-
-    res.status(200).json({
-      success: true,
-      count: achievements.length,
-      achievements
-    });
-  } catch (error) {
-    logger.error(`❌ Error obteniendo logros en progreso: ${error.message}`);
     next(error);
   }
 };

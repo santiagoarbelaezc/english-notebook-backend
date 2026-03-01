@@ -7,21 +7,9 @@ const router = express.Router();
 // Rutas protegidas - todas requieren autenticación
 router.use(protect);
 
-// CRUD básico
+// Solo lectura - los logros se desbloquean automáticamente
 router.get('/', achievementController.getAllAchievements);
-router.post('/', achievementController.createAchievement);
-router.get('/:id', achievementController.getAchievement);
-router.put('/:id', achievementController.updateAchievement);
-router.delete('/:id', achievementController.deleteAchievement);
-
-// Acciones especiales
-router.put('/:id/progress', achievementController.updateProgress);
-
-// Filtros
-router.get('/type/:achievementType', achievementController.getByType);
-router.get('/status/in-progress', achievementController.getInProgress);
-
-// Estadísticas
-router.get('/stats/overview', achievementController.getStats);
+router.get('/stats', achievementController.getStats);
+router.get('/category/:category', achievementController.getByCategory);
 
 module.exports = router;

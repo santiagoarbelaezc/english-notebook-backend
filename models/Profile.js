@@ -29,6 +29,16 @@ const profileSchema = new mongoose.Schema(
       default: 'Spanish'
     },
 
+    // Experiencia y nivel
+    experience: {
+      type: Number,
+      default: 0
+    },
+    level: {
+      type: Number,
+      default: 1
+    },
+
     // Estadísticas
     statistics: {
       totalVocabulary: {
@@ -47,9 +57,33 @@ const profileSchema = new mongoose.Schema(
         type: Number,
         default: 0
       },
+      totalTexts: {
+        type: Number,
+        default: 0
+      },
+      totalMovies: {
+        type: Number,
+        default: 0
+      },
+      totalFlashcards: {
+        type: Number,
+        default: 0
+      },
+      totalIrregularVerbs: {
+        type: Number,
+        default: 0
+      },
       streakDays: {
         type: Number,
         default: 0
+      },
+      longestStreak: {
+        type: Number,
+        default: 0
+      },
+      lastLoginDate: {
+        type: Date,
+        default: null
       },
       lastActiveDate: {
         type: Date,
