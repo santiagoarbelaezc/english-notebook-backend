@@ -104,6 +104,7 @@ const profileSchema = new mongoose.Schema(
 );
 
 // Índices
-profileSchema.index({ user: 1 });
+// No es necesario definir el índice de user aquí, ya que se define automáticamente con 'unique: true' arriba.
+// profileSchema.index({ user: 1 });
 
 module.exports = mongoose.model('Profile', profileSchema);

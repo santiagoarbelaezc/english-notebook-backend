@@ -3,6 +3,7 @@ const Message = require('../models/Message');
 const { AppError } = require('../middleware/error.middleware');
 const logger = require('../utils/logger');
 const mongoose = require('mongoose');
+const { chatWithTutor } = require('../utils/groqClient');
 
 // ============================================
 // CONVERSACIONES
@@ -273,20 +274,15 @@ exports.createMessage = async (req, res, next) => {
   try {
     const { conversationId } = req.params;
     const userId = req.user.id;
-    const { content, role, correction } = req.body;
+    const { content } = req.body; // El rol ya no es necesario, siempre es 'you' desde el cliente
 
-    // Validaciones
+    // 1. Validaciones
     if (!content) {
       const error = new AppError('El contenido del mensaje es requerido', 400);
       return next(error);
     }
 
-    if (!role || !['you', 'other'].includes(role)) {
-      const error = new AppError('El rol debe ser "you" u "other"', 400);
-      return next(error);
-    }
-
-    // Verificar que la conversación exista y pertenezca al usuario
+    // 2. Verificar que la conversación exista y pertenezca al usuario
     const conversation = await Conversation.findOne({ _id: conversationId, user: userId });
 
     if (!conversation) {
@@ -294,30 +290,78 @@ exports.createMessage = async (req, res, next) => {
       return next(error);
     }
 
-    // Crear mensaje
-    const message = await Message.create({
+    // 3. Crear y guardar mensaje del USUARIO
+    const userMessage = await Message.create({
       conversation: conversationId,
       user: userId,
       content: content.trim(),
-      role,
-      correction: correction || {}
+      role: 'you'
     });
 
-    // Actualizar contador y última fecha en conversación
+    // Actualizar historial en la conversación (puntero)
+    conversation.messages.push(userMessage._id);
     conversation.messageCount += 1;
     conversation.lastMessageDate = new Date();
-    conversation.messages.push(message._id);
     await conversation.save();
 
-    logger.info(`✅ Mensaje agregado a conversación ${conversation.title} por usuario ${req.user.username}`);
+    logger.info(`👤 Mensaje del usuario guardado en conversación ${conversationId}`);
 
+    // 4. Obtener historial reciente para Groq (últimos 20 mensajes)
+    const historyMessages = await Message.find({ conversation: conversationId })
+      .sort({ createdAt: -1 })
+      .limit(21); // Incluimos el que acabamos de crear
+
+    // Revertir para que estén en orden cronológico
+    const historyForGroq = historyMessages
+      .map(m => ({ role: m.role, content: m.content }))
+      .reverse();
+    
+    // Quitar el último (que es el mensaje actual del usuario) porque se pasa por separado en chatWithTutor
+    const currentMessage = historyForGroq.pop();
+
+    // 5. Llamar a Alex (Groq)
+    let aiResponseContent;
+    try {
+      aiResponseContent = await chatWithTutor({
+        userMessage: currentMessage.content,
+        conversationHistory: historyForGroq,
+        userProfile: {
+          name: req.user.name,
+          englishLevel: req.user.englishLevel,
+          goals: req.user.learningGoals || 'General English improvement'
+        }
+      });
+    } catch (groqError) {
+      logger.error(`❌ Error llamando a Groq: ${groqError.message}`);
+      aiResponseContent = "I'm sorry, I'm having some trouble connecting right now. Could you please try again in a moment?";
+    }
+
+    // 6. Crear y guardar respuesta del TUTOR
+    const tutorMessage = await Message.create({
+      conversation: conversationId,
+      user: userId,
+      content: aiResponseContent,
+      role: 'other'
+    });
+
+    // Actualizar historial en la conversación con la respuesta del tutor
+    conversation.messages.push(tutorMessage._id);
+    conversation.messageCount += 1;
+    conversation.lastMessageDate = new Date();
+    await conversation.save();
+
+    logger.info(`🤖 Respuesta de Alex guardada en conversación ${conversationId}`);
+
+    // 7. Retornar ambos mensajes
     res.status(201).json({
       success: true,
-      message: 'Mensaje creado exitosamente',
-      data: await message.populate('user', 'name username')
+      data: {
+        userMessage: await userMessage.populate('user', 'name username'),
+        tutorMessage: await tutorMessage.populate('user', 'name username')
+      }
     });
   } catch (error) {
-    logger.error(`❌ Error creando mensaje: ${error.message}`);
+    logger.error(`❌ Error en el flujo de chat: ${error.message}`);
     next(error);
   }
 };

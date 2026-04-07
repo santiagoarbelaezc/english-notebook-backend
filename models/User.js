@@ -52,6 +52,12 @@ const userSchema = new mongoose.Schema(
       enum: ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'],
       default: 'A1'
     },
+    learningGoals: {
+      type: String,
+      trim: true,
+      maxlength: [500, 'Los objetivos no deben exceder 500 caracteres'],
+      default: 'General English improvement'
+    },
 
     // Estado
     isActive: {
