@@ -120,6 +120,10 @@
 - **PDF/text processing** for learning materials
 - **Automatic file cleanup** and optimization
 
+### **🎓 AI Integration (Groq API)**
+- conversations component
+
+
 ---
 
 <div align="center">
